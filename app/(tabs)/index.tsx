@@ -1,10 +1,11 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
+// app/(tabs)/index.tsx  (HomeScreen)
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { Button, Platform, StyleSheet, View } from 'react-native';
 
 export default function HomeScreen() {
   return (
@@ -15,7 +16,22 @@ export default function HomeScreen() {
           source={require('@/assets/images/partial-react-logo.png')}
           style={styles.reactLogo}
         />
-      }>
+      }
+    >
+      {/* 👉 Nút Đăng nhập / Đăng ký */}
+      <View style={styles.authButtons}>
+        <Button
+          title="Đăng nhập"
+          onPress={() => router.push('/(auth)/login')}
+        />
+        <View style={{ width: 12 }} />
+        <Button
+          title="Đăng ký"
+          onPress={() => router.push('/(auth)/signup')}
+        />
+      </View>
+
+      {/* Phần nội dung sẵn có */}
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Welcome!</ThemedText>
         <HelloWave />
@@ -56,6 +72,11 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  authButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 12,
+  },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
