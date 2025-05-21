@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet, Alert } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './firebaseConfig';
+import { auth } from '../firebaseConfig';
 
 export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleRegister = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert('Lỗi', 'Mật khẩu không khớp. Vui lòng nhập lại.');
+      return;
+    }
+
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       Alert.alert('Thành công', 'Đăng ký thành công!');
@@ -35,6 +41,14 @@ export default function RegisterScreen({ navigation }: any) {
         placeholder="Mật khẩu"
         onChangeText={setPassword}
         value={password}
+        secureTextEntry
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Nhập lại mật khẩu"
+        onChangeText={setConfirmPassword}
+        value={confirmPassword}
         secureTextEntry
       />
 

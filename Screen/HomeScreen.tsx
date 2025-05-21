@@ -8,10 +8,10 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { auth, db } from './firebaseConfig';
+import { auth, db } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
-import { useTheme } from './ThemeContext';
+import { useTheme } from '../ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 
@@ -19,10 +19,12 @@ interface Props {
   navigation: any;
 }
 
-interface Service {
+interface Project {
   id: string;
   name: string;
-  price: number;
+  status: string;
+  ownerId: string;
+  createdAt?: string;
 }
 
 export default function HomeScreen({ navigation }: Props) {
@@ -31,13 +33,13 @@ export default function HomeScreen({ navigation }: Props) {
   const styles = createStyles(isDark);
   const isFocused = useIsFocused();
 
-  const [services, setServices] = useState<Service[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('AddService')}>
+        <TouchableOpacity onPress={() => navigation.navigate('AddProject')}>
           <Ionicons name="add-circle" size={28} color="#f06292" style={{ marginRight: 10 }} />
         </TouchableOpacity>
       ),
@@ -45,22 +47,22 @@ export default function HomeScreen({ navigation }: Props) {
   }, [navigation]);
 
   useEffect(() => {
-    const fetchServices = async () => {
+    const fetchProjects = async () => {
       try {
-        const snapshot = await getDocs(collection(db, 'services'));
-        const list: Service[] = snapshot.docs.map((doc) => {
+        const snapshot = await getDocs(collection(db, 'projects'));
+        const list: Project[] = snapshot.docs.map((doc) => {
           const data = doc.data();
-          const name = data.name || 'Không tên';
-          const price = Number(data.price);
           return {
             id: doc.id,
-            name,
-            price: isNaN(price) ? 0 : price,
+            name: data.name || 'No name',
+            status: data.status || 'Unknown',
+            ownerId: data.ownerId || 'Unknown',
+            createdAt: data.createdAt?.toDate?.().toLocaleDateString() || 'N/A',
           };
         });
-        setServices(list);
+        setProjects(list);
       } catch (error) {
-        console.error('❌ Lỗi khi tải dịch vụ:', error);
+        console.error('❌ Error loading projects:', error);
       } finally {
         setLoading(false);
       }
@@ -68,7 +70,7 @@ export default function HomeScreen({ navigation }: Props) {
 
     if (isFocused) {
       setLoading(true);
-      fetchServices();
+      fetchProjects();
     }
   }, [isFocused]);
 
@@ -79,37 +81,34 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>VINH TOAN SPA</Text>
+        <Text style={styles.headerText}>PROJECT MANAGER</Text>
       </View>
 
-      {/* Body */}
       {loading ? (
         <ActivityIndicator size="large" color="#f06292" style={{ marginTop: 40 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {services.map((item) => (
+          {projects.map((project) => (
             <TouchableOpacity
-              key={item.id}
-              onPress={() => navigation.navigate('ServiceDetail', item)}
+              key={project.id}
+              onPress={() => navigation.navigate('ProjectDetail', { projectId: project.id })}
             >
-              <View style={styles.serviceBox}>
-                <Text style={styles.serviceName}>{item.name}</Text>
-                <Text style={styles.servicePrice}>
-                  {item.price.toLocaleString('vi-VN')} ₫
-                </Text>
+              <View style={styles.projectBox}>
+                <Text style={styles.projectName}>{project.name}</Text>
+                <Text style={styles.projectStatus}>Status: {project.status}</Text>
+                <Text style={styles.projectOwner}>Owner: {project.ownerId}</Text>
+                <Text style={styles.projectDate}>Created: {project.createdAt}</Text>
               </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
       )}
 
-      {/* Footer */}
       <View style={styles.footer}>
-        <Button title="Đổi Theme" onPress={toggleTheme} />
+        <Button title="Toggle Theme" onPress={toggleTheme} />
         <View style={{ height: 10 }} />
-        <Button title="Đăng xuất" onPress={handleLogout} color="#d32f2f" />
+        <Button title="Logout" onPress={handleLogout} color="#d32f2f" />
       </View>
     </View>
   );
@@ -135,7 +134,7 @@ const createStyles = (isDark: boolean) =>
     scrollContent: {
       padding: 16,
     },
-    serviceBox: {
+    projectBox: {
       backgroundColor: isDark ? '#333' : '#f9f9f9',
       borderRadius: 10,
       padding: 16,
@@ -145,16 +144,24 @@ const createStyles = (isDark: boolean) =>
       shadowOpacity: 0.1,
       shadowRadius: 4,
     },
-    serviceName: {
+    projectName: {
       fontSize: 16,
-      fontWeight: '500',
+      fontWeight: '600',
       color: isDark ? '#fff' : '#000',
     },
-    servicePrice: {
+    projectStatus: {
       marginTop: 4,
       fontSize: 14,
-      fontWeight: 'bold',
+      color: isDark ? '#ccc' : '#666',
+    },
+    projectOwner: {
+      marginTop: 2,
+      fontSize: 13,
       color: '#999',
+    },
+    projectDate: {
+      fontSize: 12,
+      color: '#aaa',
     },
     footer: {
       padding: 16,

@@ -8,19 +8,35 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './firebaseConfig';
+import {
+  signInWithEmailAndPassword,
+  signInWithCredential,
+  GoogleAuthProvider,
+} from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from './ThemeContext';
+import { useTheme } from '../ThemeContext';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
 
-  const { theme, toggleTheme } = useTheme(); // 👈 DÙNG THEME
+  const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
   const styles = createStyles(isDark);
+
+  // 👇 Cấu hình Google OAuth
+  const [request, response, promptAsync] = Google.useAuthRequest({
+  clientId: '623676313958-i1l9v87cjhpatql9hfnbimf4nm31biv3.apps.googleusercontent.com',
+  redirectUri: AuthSession.makeRedirectUri({
+  }),
+});
 
   useEffect(() => {
     const loadSavedEmail = async () => {
@@ -33,6 +49,19 @@ export default function LoginScreen({ navigation }: any) {
     loadSavedEmail();
   }, []);
 
+  // 👇 Xử lý khi response Google trả về
+  useEffect(() => {
+    const handleGoogleResponse = async () => {
+      if (response?.type === 'success' && response.authentication) {
+        const idToken = response.authentication.idToken;
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
+        navigation.replace('Home');
+      }
+    };
+    handleGoogleResponse();
+  }, [response]);
+
   const handleLogin = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -41,7 +70,7 @@ export default function LoginScreen({ navigation }: any) {
       } else {
         await AsyncStorage.removeItem('rememberedEmail');
       }
-      navigation.replace('Home');
+      navigation.replace('Main');
     } catch (error: any) {
       let message = 'Đăng nhập thất bại';
       if (
@@ -57,6 +86,15 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <Text style={{
+  fontSize: 24,
+  fontWeight: 'bold',
+  textAlign: 'center',
+  marginBottom: 24,
+  color: isDark ? '#fff' : '#000'
+}}>
+  Đăng nhập
+</Text>
       <TextInput
         placeholder="Email"
         value={email}
@@ -71,7 +109,7 @@ export default function LoginScreen({ navigation }: any) {
         secureTextEntry
         style={styles.input}
         placeholderTextColor={isDark ? '#ccc' : '#888'}
-        onSubmitEditing={handleLogin} 
+        onSubmitEditing={handleLogin}
       />
 
       {/* Ghi nhớ tài khoản */}
@@ -91,7 +129,13 @@ export default function LoginScreen({ navigation }: any) {
         color="#2196f3"
       />
       <View style={{ marginTop: 10 }} />
-      {/* 👇 NÚT ĐỔI GIAO DIỆN */}
+      <Button
+        title="Đăng nhập với Google"
+        onPress={() => promptAsync()}
+        color="#db4437"
+        disabled={!request}
+      />
+      <View style={{ marginTop: 10 }} />
       <Button title="ĐỔI GIAO DIỆN" onPress={toggleTheme} color="#9c27b0" />
     </View>
   );
